@@ -44,7 +44,7 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	
 	print("\n*************************\nEntering recursive pose\n*************************")
 	print("\nStatus of current solving grid and deck : " + str(complete))
-	game.show(grid, deck)
+	# game.show(grid, deck)
 	
 	random.shuffle(free_grid)
 	point_index = 0	
