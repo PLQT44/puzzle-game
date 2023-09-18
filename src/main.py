@@ -1,8 +1,6 @@
 # Anne-Marie Stars' puzzle
 
 # imports
-import numpy as np
-import datetime
 import pygame
 import sys
 import exceptions as exc
@@ -56,7 +54,6 @@ def execute_main():
 
 	# Initiate message
 	main_message = REFERENCE_MESSAGE
-
 	main_font = pygame.font.Font(None, 36)
 	main_text = main_font.render(REFERENCE_MESSAGE, True, RGB_COLOURS['black'])  # Text, antialiasing, color
 	main_text_rect = main_text.get_rect()
@@ -67,11 +64,9 @@ def execute_main():
 	label_timer_duration = 3000  # 3 seconds (in milliseconds)
 	start_time = 0
 
-
 	while running:
 		# poll for events
 		# pygame.QUIT event means the user clicked X to close your window
-
 		event_list = pygame.event.get()
 		current_time = pygame.time.get_ticks()
 
@@ -80,7 +75,6 @@ def execute_main():
 				running = False
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_RETURN:
-					sys.stdout = open('solving_log.txt', 'w')
 					update_main_label(screen, main_text, main_text_rect, main_font, "SOLVING...")
 					overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 					overlay.fill((0, 0, 0, 128))
@@ -91,9 +85,8 @@ def execute_main():
 					#whatever the status I need to change labels, thus I need time management
 					label_timer_active = True
 					start_time = current_time
-
 					try :
-						play_grid, play_deck = solving.recursive_pose(play_grid, play_deck, surface = screen)
+						play_grid, play_deck = solving.recursive_pose(play_grid, play_deck)
 						current_time = pygame.time.get_ticks() #calculation may take some time
 						main_message = "SOLVED! - in {:.2f} seconds".format((current_time-start_time)/1000)
 						start_time = current_time
@@ -101,9 +94,7 @@ def execute_main():
 						current_time = pygame.time.get_ticks() #calculation may take some time
 						main_message = "No solution found - searched for {:.2f} seconds".format((current_time-start_time)/1000)
 						start_time = current_time
-					
-					sys.stdout.close()
-					
+										
 				elif event.key == pygame.K_i:
 					main_message = "Let's start all over again"
 					label_timer_active = True
@@ -114,10 +105,8 @@ def execute_main():
 
 		# fill the screen with a color to wipe away anything from last frame
 		screen.fill("white")
-
 		for piece in pieces_dict.values():
 			piece.update(event_list, play_grid) #moving and rotating pieces, checking for collisions
-
 		play_grid.update(event_list)
 
 		#show the sprites

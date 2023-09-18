@@ -18,18 +18,14 @@ def build_deck(pieces_dict, grid):
 #					ULTIMATE RECURSION FUNCTIONS							   #
 ################################################################################
 
-def recursive_pose(grid, deck, do_split = True, complete = True, surface = None):
+def recursive_pose(grid, deck, do_split = True, complete = True):
 
 	#the core of the solving program. Tries to fill the grid with pieces in the deck. Returns the new grid and deck or exc.SolvingImpossibility if no solution is found
-	#I should try a new version ranking free points based on their proximity to installed pieces
-
-	game.show(grid, deck, surface)
 
 	free_grid = grid.free_points()
-	
 	if len(free_grid) == 0: #no more free points, cool!
 		return grid, deck
-			
+
 	#I have free points, let's continue
 	
 	#A little bit of shuffling to change, then put the pieces that have points with their colours set at beginning
@@ -52,13 +48,11 @@ def recursive_pose(grid, deck, do_split = True, complete = True, surface = None)
 
 	point_index = 0	
 	current_point = free_grid[point_index] #let's start with first free point
-	
 	piece_index = 0
 	current_piece = deck[piece_index] #take the first piece in the deck
 
 	#choose a piece that is smaller than the free grid. If none, exit
 	while_exit = False
-	
 	while not(while_exit):
 		if len(free_grid) < len(current_piece.sprites()):
 			if complete:
@@ -75,7 +69,6 @@ def recursive_pose(grid, deck, do_split = True, complete = True, surface = None)
 	
 	#now is the main loop
 	while_exit = False
-	
 	while not(while_exit):
 		#try to put the current_piece on the grid
 		success, fitting_points = current_piece.check_fit(grid)
@@ -84,7 +77,7 @@ def recursive_pose(grid, deck, do_split = True, complete = True, surface = None)
 			deck.remove(current_piece)
 			#now let's enter next recursion level
 			try :
-				next_grid, next_deck = recursive_pose(grid, deck, surface)
+				next_grid, next_deck = recursive_pose(grid, deck)
 				return next_grid, next_deck
 			except exc.SolvingImpossibility: #I didn't manage to solve the sub-grid
 				current_piece.detach('base')
@@ -95,10 +88,10 @@ def recursive_pose(grid, deck, do_split = True, complete = True, surface = None)
 		else: #if piece does not fit, I move to next possibility ; first rotate, then try to translate, then try with next piece
 			point_index, current_point = current_piece.next_move(point_index, free_grid)
 			
-###########
+###############################################################################
 # I thought this next function was a good idea, but in fact it isn't, because I have to browse through all pieces. 
 # anyway, was fun trying		
-################################
+###############################################################################
 
 def multi_recursive_pose(grid_list, deck):
 
@@ -171,9 +164,7 @@ def grid_split(target_grid, anchor_grid = None):
 			return [anchor_grid]
 
 	else: #there are at least 1 free points in target_grid, I can evaluate neighbouring and start recursion
-		
 		result_grid = game.Grid(x_offset = target_grid.x_offset, y_offset = target_grid.y_offset)
-		
 		#let's concentrate on free points of target_grid
 		for point in target_grid.sprites():
 			if point.status == 'base':
@@ -183,13 +174,10 @@ def grid_split(target_grid, anchor_grid = None):
 			anchor_grid = game.Grid(x_offset = target_grid.x_offset, y_offset = target_grid.y_offset, point_list = [free_list[0]])
 		
 		for anchor_point in anchor_grid.sprites():
-		
 			#anchor point is outside of grid	
 			result_grid.remove(anchor_point)
-			
 			try: #let's try to find a neighbour to the anchor point
 				neighbour = find_neighbour(anchor_point, result_grid)
-				
 				#if I find a neighbour, I start recursing, anchoring in that neighbour
 				anchor_grid.add(neighbour)
 				result_grid.remove(neighbour)

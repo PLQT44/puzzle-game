@@ -618,7 +618,6 @@ def create_star_image(piece):
 
 	#remove blank space around star
 	#I start by setting all non-black pixels to transparent
-
 	image = image.convert("RGBA")
 	datas = image.getdata()
 	new_image_data = []
@@ -655,38 +654,5 @@ def create_star_image(piece):
 
 	# update image data
 	image.putdata(new_image_data)
-
 	# save new image
 	image.save("./images/star_" + colour + ".png")
-
-
-################################################################################
-######################### DEBUG FUNCTIONS ######################################
-################################################################################
-
-def deck_show(deck):
-	print("\nDeck length : " + str(len(deck)))
-	for piece in deck:
-		print(piece.colour)
-		# piece.show()
-
-def show(grid, deck, surface):
-	grid.show()
-	deck_show(deck)
-	
-	# fill the screen with a color to wipe away anything from last frame
-	# surface.fill("white")
-
-	# grid.update()
-	# pieces_group.update()
-
-	# #show the sprites
-	# grid.draw(surface)
-	# pieces_group.draw(surface)
-
-	# # flip() the display to put your work on screen
-	# pygame.display.flip()
-		
-	# input("press Enter to continue")
-
-
