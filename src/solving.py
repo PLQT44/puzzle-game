@@ -5,7 +5,6 @@
 # imports
 import random
 from itertools import permutations #needed for permutations of the deck
-from pprint import pprint
 import pygame
 import exceptions as exc
 import star_game as game
@@ -23,7 +22,6 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	free_grid = grid.free_points()
 	
 	if len(free_grid) == 0: #no more free points, cool!
-		# print("\nNo more free points, I completed the grid!")
 		return grid, deck
 			
 	#I have free points, let's continue
@@ -39,12 +37,7 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	
 	#check if the number of free points is superior to the smallest piece, otherwise exit immediatly
 	if len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in deck]):
-		# print("\nSmallest sub-grid too small for the deck, exit immediatly")
 		raise exc.SolvingImpossibility
-	
-	# print("\n*************************\nEntering recursive pose\n*************************")
-	# print("\nStatus of current solving grid and deck : " + str(complete))
-	# game.show(grid, deck)
 	
 	random.shuffle(free_grid)
 	point_index = 0	
@@ -59,7 +52,6 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	while not(while_exit):
 		if len(free_grid) < len(current_piece.sprites()):
 			if complete:
-				# print("\nGrid too small for the piece, exit immediatly")
 				while_exit = True
 				raise exc.SolvingImpossibility
 			else:
@@ -76,7 +68,6 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	
 	while not(while_exit):
 		
-		# print("\nTrying %s piece on point" % current_piece.colour)
 		current_point.show()
 									
 		#try to put the current_piece on the grid
@@ -84,35 +75,27 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 
 		if success: #it fits!
 		
-			# print("\nManaged to put %s piece " % current_piece.colour)
 			current_piece.attach(fitting_points)
 			deck.remove(current_piece)
 		
 			#now let's enter next recursion level
 			try :
-				# print("\nEntering next recursion level")
 				next_grid, next_deck = recursive_pose(grid, deck)
 				while_exit = True
 				return next_grid, next_deck
 		
 			except exc.SolvingImpossibility: #I didn't manage to solve the sub-grid
-				# print("\nDidn't manage to solve sub-grid")
 				current_piece.detach('base')
 				deck.insert(piece_index, current_piece) #logically put the piece back in the deck
 				
 				#I need to make the next move for piece
 				try: #try to rotate once more
-					# print("\nTrying to rotate")
 					current_piece.next_move()
-					# print("\n%s piece rotation is now %s" % (current_piece.colour.title(), str(current_piece.rotation))) 
 				except exc.FinalMove: #I already went through all rotations
 					current_piece.reinit_to_deck() #back to basic location
 					try: #try to move to next free point
 						point_index += 1
-						# print("\nTrying to move to next point")
 						current_point = free_grid[point_index]
-						# print("\nNext point is")
-						current_point.show()
 						current_piece.set_pos(current_point)
 					except: #I tried all free points
 						if complete: #this is a complete grid, so I should be able to put the piece somewhere
@@ -120,14 +103,10 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 							raise exc.SolvingImpossibility
 						else:
 							try: #maybe with next piece?
-								# print("\nTrying to pick next piece")
 								piece_index += 1
 								current_piece = deck[piece_index]
-								# print("\nPiece is now " + current_piece.colour)
 								point_index = 0
 								current_point = free_grid[point_index]
-								# print("\nNext point is")
-								current_point.show()
 								current_piece.set_pos(current_point)
 							except: #this is really the end
 								while_exit = True
@@ -136,16 +115,12 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 		else: #if piece does not fit, I move to next possibility ; first rotate, then try to translate, then try with next piece
 
 			try: #try to rotate once more
-				# print("\nTrying to rotate")
 				current_piece.next_move()
-				# print("\n%s piece rotation is now %s" % (current_piece.colour.title(), str(current_piece.rotation))) 
 			except exc.FinalMove: #I already went through all rotations
 				current_piece.reinit_to_deck() #back to basic location
 				try: #try to move to next free point
 					point_index += 1
-					# print("\nTrying to move to next point")
 					current_point = free_grid[point_index]
-					# print("Next point is")
 					current_point.show()
 					current_piece.set_pos(current_point)
 				except: #I tried all free points
@@ -154,13 +129,10 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 						raise exc.SolvingImpossibility
 					else:
 						try: #maybe with next piece?
-							# print("\nTrying to pick next piece")
 							piece_index += 1
 							current_piece = deck[piece_index]
-							# print("Piece is now " + current_piece.colour)
 							point_index = 0
 							current_point = free_grid[point_index]
-							# print("Next point is")
 							current_point.show()
 							current_piece.set_pos(current_point)
 						except: #this is really the end
@@ -182,13 +154,6 @@ def multi_recursive_pose(grid_list, deck):
 
 	while not(while_exit):
 		try:
-			# print("\nIn multi recursive pose, here is the first sub grid")
-			# first_sub_grid.show()
-			# print("\nAnd here is the desk")
-			# for piece in deck:
-				# print(piece.colour, end=" ")
-			# # input("\nPress Enter")
-
 			#if this is the last grid to solve, then first piece must fit
 			if len(sorted_grid_list) == 0:
 				complete = True
@@ -197,8 +162,6 @@ def multi_recursive_pose(grid_list, deck):
 			
 			next_deck = first_sub_grid.recursive_pose(current_deck, False, complete)
 			
-			# print("\nIn multi_recursive_pose, I solved the first sub-grid!")
-			
 			#we need to try the rest of the grids. If it works, fine! else, we need to change the way to solve the first sub-grid, end try again. I do that by permutating the deck.
 			try:
 				if len(sorted_grid_list) == 0:
@@ -206,23 +169,16 @@ def multi_recursive_pose(grid_list, deck):
 				else:
 					new_next_grid, new_next_deck = multi_recursive_pose(sorted_grid_list, next_deck)
 					first_sub_grid.add(new_next_grid)
-					# print("\nThis should be end of multi recursion")
-					# show(first_sub_grid, new_next_deck)
-					# input("\nPress Enter")
 					return first_sub_grid, new_next_deck
 			
 			except exc.SolvingImpossibility: #couldn't solve the next grid with the way the first sub grid was solved
 				first_sub_grid.reinit() #remove all pieces, set points to 'base' status
 				try:
-					# print("\nTrying to permutate the deck")
 					current_deck = list(next(possible_decks)) #I start again with a permutated deck
 				except StopIteration as e: #I tried all permutations of the deck, and the whole branch is, in fact, unsolvable
-					# print("\All permutations tried")
 					while_exit = True
 
 		except exc.SolvingImpossibility: 
-			# print("\n#couldn't solve the smallest grid, no possibility to solve the list of grids")
-			# input("Press Enter")
 			while_exit = True
 	
 	raise exc.SolvingImpossibility
@@ -271,9 +227,4 @@ def grid_split(target_grid, anchor_grid = None):
 		
 		#no point in anchor grid has a neighbour in result_grid
 		result = [anchor_grid] + grid_split(result_grid)
-		# print("\Here is the result of split")
-		# for grid in result:
-			# grid.show()
 		return result
-
-
