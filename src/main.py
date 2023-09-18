@@ -7,6 +7,7 @@ import pygame
 import sys
 import exceptions as exc
 import star_game as game
+import solving
 
 #global references and constants
 RGB_COLOURS = {'orange':(255,128,0), 'blue':(0,0,255),
@@ -86,14 +87,13 @@ def execute_main():
 					screen.blit(overlay, (0,0))
 					pygame.display.flip()
 					play_deck = game.build_deck(pieces_dict, play_grid)
-					#grid_list = grid_split(play_grid)
-
+					
 					#whatever the status I need to change labels, thus I need time management
 					label_timer_active = True
 					start_time = current_time
 
 					try :
-						play_deck = play_grid.recursive_pose(play_deck)
+						play_grid, play_deck = solving.recursive_pose(play_grid, play_deck)
 						current_time = pygame.time.get_ticks() #calculation may take some time
 						main_message = "SOLVED! - in {:.2f} seconds".format((current_time-start_time)/1000)
 						start_time = current_time
@@ -118,7 +118,7 @@ def execute_main():
 		for piece in pieces_dict.values():
 			piece.update(event_list, play_grid) #moving and rotating pieces, checking for collisions
 
-		play_grid.update()
+		play_grid.update(event_list)
 
 		#show the sprites
 		play_grid.draw(screen)
