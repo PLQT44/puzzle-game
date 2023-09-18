@@ -24,13 +24,15 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	
 	if len(free_grid) == 0: #no more free points, cool!
 		print("\nNo more free points, I completed the grid!")
-		return deck
+		return grid, deck
 			
 	#I have free points, let's continue
 	
-	#A little bit of shuffling to change
-	random.shuffle(deck) 
-			
+	#A little bit of shuffling to change, then put the pieces that have points with their colours set at beginning
+	random.shuffle(deck)
+	set_colours_list = [point.colour for point in grid.sprites() if point.colour != '']
+	deck.sort(key=lambda piece: piece.colour in set_colours_list, reverse = True)
+				
 	#first, let's split, to test if there are very small sub-grids, in which case we need to exit
 	grid_list = grid_split(grid)
 	sorted_grid_list = sorted(grid_list, key=lambda grid: len(grid)) #sort it
@@ -42,7 +44,7 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 	
 	print("\n*************************\nEntering recursive pose\n*************************")
 	print("\nStatus of current solving grid and deck : " + str(complete))
-	show(grid, deck)
+	game.show(grid, deck)
 	
 	random.shuffle(free_grid)
 	point_index = 0	
@@ -240,7 +242,7 @@ def grid_split(target_grid, anchor_grid = None):
 
 	else: #there are at least 1 free points in target_grid, I can evaluate neighbouring and start recursion
 		
-		result_grid = Grid(x_offset = target_grid.x_offset, y_offset = target_grid.y_offset)
+		result_grid = game.Grid(x_offset = target_grid.x_offset, y_offset = target_grid.y_offset)
 		
 		#let's concentrate on free points of target_grid
 		for point in target_grid.sprites():
@@ -248,7 +250,7 @@ def grid_split(target_grid, anchor_grid = None):
 				result_grid.add(point)
 		
 		if anchor_grid is None: #create the initial point to grow from
-			anchor_grid = Grid(x_offset = target_grid.x_offset, y_offset = target_grid.y_offset, point_list = [free_list[0]])
+			anchor_grid = game.Grid(x_offset = target_grid.x_offset, y_offset = target_grid.y_offset, point_list = [free_list[0]])
 		
 		for anchor_point in anchor_grid.sprites():
 		
@@ -256,7 +258,7 @@ def grid_split(target_grid, anchor_grid = None):
 			result_grid.remove(anchor_point)
 			
 			try: #let's try to find a neighbour to the anchor point
-				neighbour = find_neighbour(anchor_point, result_grid)
+				neighbour = game.find_neighbour(anchor_point, result_grid)
 				
 				#if I find a neighbour, I start recursing, anchoring in that neighbour
 				anchor_grid.add(neighbour)

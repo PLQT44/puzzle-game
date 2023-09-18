@@ -2,7 +2,7 @@
 
 # imports
 import random
-from itertools import permutations #needed for permutations of the deck
+from itertools import permutations, cycle #needed for permutations of the deck
 from pprint import pprint
 import tkinter
 import pygame
@@ -145,7 +145,8 @@ class HexPoint(pygame.sprite.Sprite):
 class GridPoint(HexPoint):
 	# this is a point for a grid. I define it as a subclass of HexPoint
 	# It has a number of specific properties
-	# a status ('base', 'set', 'attracted', 'installed')
+	# a status ('base', 'attracted', 'installed')
+	# it has a colour that is basically set to '' but can browse throuh an iterator, also include a reference list which indicates how to handle specification of a colour
 	# a reference to the occupying piece
 
 	def __init__(self, Hx=0, Hy=0, Hz=0,
@@ -174,36 +175,54 @@ class GridPoint(HexPoint):
 		# I define x and y at init
 		self.update_2D()
 
+		# what can be the set status
+		self.set_colour_pool = cycle(['', 'orange', 'yellow', 'green', 'violet', 'pink', 'red', 'blue'])
+
 		# status and piece reference
 		self.status = 'base'
+		self.colour = next(self.set_colour_pool)
 		self.piece = None
 	
 	def show(self):
-		message = f"Point {(self.Hx, self.Hy, self.Hz)}  status :  {self.status}  "
+		message = f"Point {(self.Hx, self.Hy, self.Hz)}  status :  {self.status} colour : {self.colour} "
 
 		if self.status == 'installed':
-			message += self.piece.colour
+			message += f"Installed piece : {self.piece.colour}"
+		
 		print(message)
 
-	def update(self):
+	def update(self, event_list, *args, **kwargs):
 		super().update()
+		
+		for event in event_list:
+			#handle setting logic
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				if (event.button == 4
+		 and self.rect.collidepoint(event.pos)
+		 and self.status in ['base', 'set']): #roulet scroll up mouse over the point
+					self.colour = next(self.set_colour_pool)
 
+		self.image.fill((255,255,255,0))
+			
 		if self.status == 'base':
-			self.image.fill((255,255,255,0))
 			pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
 			self.image.set_alpha(255)  # non-transparent
 		elif self.status == 'attracted':
-			self.image.fill((255,255,255,0))
-			pygame.draw.circle(self.image, (0,0,0,255), (25,25), 1.5*self.radius)
+			pygame.draw.circle(self.image, (0,0,0,128), (25,25), 1.5*self.radius)
 			self.image.set_alpha(128) #semi transparent
 		elif self.status == 'installed':
 			self.image.set_alpha(0)
-
+		
+		if self.colour != '':		
+			self.image = pygame.image.load("./images/star_" + self.colour + ".png")
+			self.image.set_alpha(128)
+		
 	def clone(self):
 		return GridPoint(self.Hx, self.Hy, self.Hz, self.x_offset, self.y_offset)
 
 	def reinit(self):
 		self.status = 'base'
+		self.colour = ''
 		self.piece = None
 
 class PieceElement(HexPoint):
@@ -429,23 +448,30 @@ class Piece(pygame.sprite.Group):
 		#let's test and handle collisions!
 		collide_dict = pygame.sprite.groupcollide(self, grid, False, False, pygame.sprite.collide_rect_ratio(0.3))
 
-		#remove occupied points
 		proper_dict = {}
+
+		#remove occupied points
 		for element, point_list in collide_dict.items():
 			for point in point_list:
-				if point.status in ['base', 'attracted']:
+				if ((point.status in ['base', 'attracted'] and point.colour == '') or (point.colour == element.colour)):
 					proper_dict[element] = point
 				break
 
 		return proper_dict
 
 	def check_fit(self, grid):
-		#basically the same as before 2D graphics management. test collision with the grid, returns a dictionary of attachment points and a status
+		#basically the same as before 2D graphics management. test collision with the grid, returns a dictionary of attachment points and a success boolean
 
 		points_dict = self.matching_points(grid)
 
-		# let's check if the whole piece fits in
-		return all((element in points_dict.keys()) for element in self.sprites()), points_dict
+		set_points = grid.set_points(self.colour)
+
+		#check if all points in set_points are in matching dict
+		if all((point in points_dict.values()) for point in set_points):
+			# let's check if the whole piece fits in
+			return all((element in points_dict.keys()) for element in self.sprites()), points_dict
+		else:
+			return False, points_dict
 
 	def update(self, event_list, grid, *args, **kwargs):
 
@@ -578,6 +604,11 @@ class Grid(pygame.sprite.Group):
 		for point in point_list:
 			self.add(point)
 
+	def set_points(self, colour = ''):
+		if colour == '':
+			return []
+		else:
+			return [point for point in self.sprites() if point.colour == colour]
 
 	def show(self):
 		print("\nGrid origin %s / %s" % (str(self.x_offset), str(self.y_offset)))
@@ -606,158 +637,6 @@ class Grid(pygame.sprite.Group):
 			if point.status == 'installed':
 				point.piece.reinit_to_deck()
 			point.reinit()
-
-
-	def recursive_pose(self, deck, do_split = True, complete = True):
-
-		#the core of the solving program. Tries to fill the grid with pieces in the deck. Returns the deck or exc.SolvingImpossibility if no solution is found
-		#230914 this version is by far the best! I do not enter into sub-grid recursion, but I use the split to check if I have impossible sub-grids, in which case I exit
-		#I should try a new version ranking free points based on their proximity to installed pieces
-
-		free_grid = self.free_points()
-		
-		if len(free_grid) == 0: #no more free points, cool!
-			print("\nNo more free points, I completed the grid!")
-			return deck
-				
-		#I have free points, let's continue
-		
-		#A little bit of shuffling to change
-		random.shuffle(deck) 
-				
-		#first, let's split, to test if there are very small sub-grids, in which case we need to exit
-		grid_list = grid_split(self)
-		sorted_grid_list = sorted(grid_list, key=lambda grid: len(grid)) #sort it
-		
-		#check if the number of free points is superior to the smallest piece, otherwise exit immediatly
-		if len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in deck]):
-			print("\nSmallest sub-grid too small for the deck, exit immediatly")
-			raise exc.SolvingImpossibility
-		
-		print("\n*************************\nEntering recursive pose\n*************************")
-		print("\nStatus of current solving grid and deck : " + str(complete))
-		show(self, deck)
-		
-		random.shuffle(free_grid)
-		point_index = 0	
-		current_point = free_grid[point_index] #let's start with first free point
-		
-		piece_index = 0
-		current_piece = deck[piece_index] #take the first piece in the deck
-
-		#choose a piece that is smaller than the free grid. If none, exit
-		while_exit = False
-		
-		while not(while_exit):
-			if len(free_grid) < len(current_piece.sprites()):
-				if complete:
-					print("\nGrid too small for the piece, exit immediatly")
-					while_exit = True
-					raise exc.SolvingImpossibility
-				else:
-					piece_index += 1
-					current_piece = deck[piece_index] #take the next piece in the deck
-			else:
-				while_exit = True
-		
-		#I chose a correct piece, let's put it in position
-		current_piece.set_pos(current_point) #I place in first grid's free point
-		
-		#now is the main loop
-		while_exit = False
-		
-		while not(while_exit):
-			
-			print("\nTrying %s piece on point" % current_piece.colour)
-			current_point.show()
-										
-			#try to put the current_piece on the grid
-			success, fitting_points = current_piece.check_fit(self)
-
-			if success: #it fits!
-			
-				print("\nManaged to put %s piece " % current_piece.colour)
-				current_piece.attach(fitting_points)
-				deck.remove(current_piece)
-			
-				#now let's enter next recursion level
-				try :
-					print("\nEntering next recursion level")
-					next_deck = self.recursive_pose(deck)
-					while_exit = True
-					return next_deck
-			
-				except exc.SolvingImpossibility: #I didn't manage to solve the sub-grid
-					print("\nDidn't manage to solve sub-grid")
-					current_piece.detach('base')
-					deck.insert(piece_index, current_piece) #logically put the piece back in the deck
-					
-					#I need to make the next move for piece
-					try: #try to rotate once more
-						print("\nTrying to rotate")
-						current_piece.next_move()
-						print("\n%s piece rotation is now %s" % (current_piece.colour.title(), str(current_piece.rotation))) 
-					except exc.FinalMove: #I already went through all rotations
-						current_piece.reinit_to_deck() #back to basic location
-						try: #try to move to next free point
-							point_index += 1
-							print("\nTrying to move to next point")
-							current_point = free_grid[point_index]
-							print("\nNext point is")
-							current_point.show()
-							current_piece.set_pos(current_point)
-						except: #I tried all free points
-							if complete: #this is a complete grid, so I should be able to put the piece somewhere
-								while_exit = True
-								raise exc.SolvingImpossibility
-							else:
-								try: #maybe with next piece?
-									print("\nTrying to pick next piece")
-									piece_index += 1
-									current_piece = deck[piece_index]
-									print("\nPiece is now " + current_piece.colour)
-									point_index = 0
-									current_point = free_grid[point_index]
-									print("\nNext point is")
-									current_point.show()
-									current_piece.set_pos(current_point)
-								except: #this is really the end
-									while_exit = True
-									raise exc.SolvingImpossibility
-
-			else: #if piece does not fit, I move to next possibility ; first rotate, then try to translate, then try with next piece
-
-				try: #try to rotate once more
-					print("\nTrying to rotate")
-					current_piece.next_move()
-					print("\n%s piece rotation is now %s" % (current_piece.colour.title(), str(current_piece.rotation))) 
-				except exc.FinalMove: #I already went through all rotations
-					current_piece.reinit_to_deck() #back to basic location
-					try: #try to move to next free point
-						point_index += 1
-						print("\nTrying to move to next point")
-						current_point = free_grid[point_index]
-						print("Next point is")
-						current_point.show()
-						current_piece.set_pos(current_point)
-					except: #I tried all free points
-						if complete: #this is a complete grid, so I should be able to put the piece somewhere
-							while_exit = True
-							raise exc.SolvingImpossibility
-						else:
-							try: #maybe with next piece?
-								print("\nTrying to pick next piece")
-								piece_index += 1
-								current_piece = deck[piece_index]
-								print("Piece is now " + current_piece.colour)
-								point_index = 0
-								current_point = free_grid[point_index]
-								print("Next point is")
-								current_point.show()
-								current_piece.set_pos(current_point)
-							except: #this is really the end
-								while_exit = True
-								raise exc.SolvingImpossibility
 
 		
 ################################################################################
@@ -942,7 +821,6 @@ def create_star_image(piece):
 
 	# save new image
 	image.save("./images/star_" + colour + ".png")
-
 
 def create_piece_image(piece):
 	#I add several stars to create a new image for a piece, adapting to colour
