@@ -19,6 +19,7 @@ SCALE = 50
 X_DECK_OFFSET = 50
 Y_DECK_OFFSET = 620
 PIECE_SPACING = 170
+PIECE_GENERATOR = { "red" : ['ne', 'se', 'ne'], "green" : ['e', 'e', 'ne'], "pink" : ['ne', 'e', 'se'], "blue" : ['ne', 'se', 'e'], "yellow" : ['e', 'ne', 'se'], "violet" : ['e', 'e'], "orange" : ['e', 'ne']}
 
 ################################################################################
 #                   GEOMETRY FUNCTIONS                                         #
@@ -51,7 +52,6 @@ class HexPoint(pygame.sprite.Sprite):
 
 	def __init__(self, Hx=0, Hy=0, Hz=0, x_offset = 0, y_offset = 0):
 		super().__init__()
-
 		self.image = pygame.Surface((1,1))
 
 		# Each point has three 3D coordinates in Hexagonal plan.
@@ -313,8 +313,7 @@ class Piece(pygame.sprite.Group):
 
 		for i in range(angle):
 			for element in self.sprites():
-				if element != self.origin:
-					element.rotate(self.origin)
+				element.rotate(self.origin)
 
 		self.rotation = self.rotation%6
 
@@ -439,11 +438,11 @@ class Piece(pygame.sprite.Group):
 		return proper_dict
 
 	def check_fit(self, grid):
-		#basically the same as before 2D graphics management. test collision with the grid, returns a dictionary of attachment points and a success boolean
+		# test collision with the grid, returns a dictionary of attachment points and a success boolean
 		points_dict = self.matching_points(grid)
 		set_points = grid.set_points(self.colour)
 
-		#check if all points in set_points are in matching dict
+		#if some grid points' colour is set, check if all these points are matching
 		if all((point in points_dict.values()) for point in set_points):
 			# let's check if the whole piece fits in
 			return all((element in points_dict.keys()) for element in self.sprites()), points_dict

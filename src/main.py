@@ -35,17 +35,14 @@ def execute_main():
 	play_grid = game.Grid(width =7, height = 4, x_offset = 500, y_offset = 400) #create a new grid
 
 	#generate pieces. I put pieces in a sprites group, and also in a dictionary for easier browsing
-	piece_generator = { "red" : ['ne', 'se', 'ne'], "green" : ['e', 'e', 'ne'], "pink" : ['ne', 'e', 'se'], "blue" : ['ne', 'se', 'e'], "yellow" : ['e', 'ne', 'se'], "violet" : ['e', 'e'], "orange" : ['e', 'ne']}
-
+	piece_generator = game.PIECE_GENERATOR
 	pieces_group, pieces_dict = game.piece_generation(piece_generator, game.X_DECK_OFFSET, game.Y_DECK_OFFSET, game.PIECE_SPACING)
 
 	# pygame setup
 	pygame.init()
-	
 	screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 	clock = pygame.time.Clock()
 	running = True
-	dt = 0
 
 	# load and set the logo
 	logo = pygame.image.load("./images/Star_icon_stylized.svg.png")

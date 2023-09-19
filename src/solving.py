@@ -27,7 +27,6 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 		return grid, deck
 
 	#I have free points, let's continue
-	
 	#A little bit of shuffling to change, then put the pieces that have points with their colours set at beginning
 	random.shuffle(deck)
 	set_colours_list = [point.colour for point in grid.sprites() if point.colour != '']
@@ -42,9 +41,10 @@ def recursive_pose(grid, deck, do_split = True, complete = True):
 		raise exc.SolvingImpossibility
 	
 	#shuffle the free_grid then sort it according to distance to installed_points
-	installed_points = [point for point in grid if point.status == 'installed']
 	random.shuffle(free_grid)
-	free_grid.sort(key=lambda point: group_distance(point, installed_points))
+	installed_points = [point for point in grid if point.status == 'installed']
+	if len(installed_points) > 0:
+		free_grid.sort(key=lambda point: group_distance(point, installed_points))
 
 	point_index = 0	
 	current_point = free_grid[point_index] #let's start with first free point
