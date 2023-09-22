@@ -3,17 +3,12 @@
 # imports
 import pygame
 import sys
+from constants import RGB_COLOURS, SCREEN_WIDTH, SCREEN_HEIGHT
 import exceptions as exc
-import star_game as game
-import solving
+import puzzles.puzzle_game
+import puzzles.star_game
 
 #global references and constants
-RGB_COLOURS = {'orange':(255,128,0), 'blue':(0,0,255),
-			   'violet':(127,0,255), 'pink':(255,0,255),
-			   'red':(255,0,0), 'green':(0,255,0),
-			   'yellow':(255,255,0), 'black' : (0,0,0)}
-
-SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 
 REFERENCE_MESSAGE = "Press Enter to Solve, 'I' to init"
 
@@ -30,24 +25,24 @@ def update_main_label(screen, text, text_rect, font, message = REFERENCE_MESSAGE
 	text_rect.center = (SCREEN_WIDTH // 2, 50)  # Center the text
 	screen.blit(text, text_rect)	
 
+def choose_game():
+	return puzzles.star_game.StarGame()
+
 def execute_main():
-	# Initiate the play_grid
-	play_grid = game.Grid(width =7, height = 4, x_offset = 500, y_offset = 400) #create a new grid
-
-	#generate pieces. I put pieces in a sprites group, and also in a dictionary for easier browsing
-	piece_generator = game.PIECE_GENERATOR
-	pieces_group, pieces_dict = game.piece_generation(piece_generator, game.X_DECK_OFFSET, game.Y_DECK_OFFSET, game.PIECE_SPACING)
-
+	
 	# pygame setup
 	pygame.init()
 	screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 	clock = pygame.time.Clock()
 	running = True
 
-	# load and set the logo
-	logo = pygame.image.load("./images/Star_icon_stylized.svg.png")
-	pygame.display.set_icon(logo)
-	pygame.display.set_caption("Stars puzzle")
+	#CHOOSE GAME
+	game = choose_game()
+	game.start(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+	# load and set the logo TO BE ADAPTED WITH CHOSEN GAME
+	pygame.display.set_icon(game.icon)
+	pygame.display.set_caption(game.caption)
 
 	# Initiate message
 	main_message = REFERENCE_MESSAGE
@@ -77,13 +72,12 @@ def execute_main():
 					overlay.fill((0, 0, 0, 128))
 					screen.blit(overlay, (0,0))
 					pygame.display.flip()
-					play_deck = solving.build_deck(pieces_dict, play_grid)
 					
 					#whatever the status I need to change labels, thus I need time management
 					label_timer_active = True
 					start_time = current_time
 					try :
-						play_grid, play_deck = solving.recursive_pose(play_grid, play_deck)
+						game.solve()
 						current_time = pygame.time.get_ticks() #calculation may take some time
 						main_message = "SOLVED! - in {:.2f} seconds".format((current_time-start_time)/1000)
 						start_time = current_time
@@ -96,19 +90,11 @@ def execute_main():
 					main_message = "Let's start all over again"
 					label_timer_active = True
 					start_time = current_time
-					play_grid.reinit()
-					for piece in pieces_dict.values():
-						piece.reinit_to_deck()
-
+					game.reinit()
+					
 		# fill the screen with a color to wipe away anything from last frame
 		screen.fill("white")
-		for piece in pieces_dict.values():
-			piece.update(event_list, play_grid) #moving and rotating pieces, checking for collisions
-		play_grid.update(event_list)
-
-		#show the sprites
-		play_grid.draw(screen)
-		pieces_group.draw(screen)
+		game.draw(event_list, screen)
 
 		#manage label timer and show message
 		if label_timer_active and current_time - start_time >= label_timer_duration:
@@ -124,7 +110,6 @@ def execute_main():
 		clock.tick(60) / 1000
 
 	pygame.quit()
-
 
 if __name__ == "__main__": 
     execute_main()

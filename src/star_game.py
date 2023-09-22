@@ -274,7 +274,7 @@ class Piece(pygame.sprite.Group):
 	# I define also a deck_offset (x axis) which allows to put it
 	# in a given place on the deck
 
-	def __init__(self, colour, deck_position_x = 0, deck_position_y = 0, sequence = []):
+	def __init__(self, colour, deck_position_x = 0, deck_position_y = 0, build_sequence = []):
 		super().__init__()
 
 		# Add first element to the group
@@ -284,7 +284,7 @@ class Piece(pygame.sprite.Group):
 
 		# create elements based on sequence of moves
 		ref_elt = piece_element_1
-		for move in sequence:
+		for move in build_sequence:
 			new_element = PieceElement(colour = ref_elt.colour, Hx = ref_elt.Hx, Hy = ref_elt.Hy, Hz = ref_elt.Hz, x_offset = ref_elt.x_offset, y_offset = ref_elt.y_offset )
 			method = getattr(new_element, "translate_" + move)
 			method()
@@ -431,7 +431,7 @@ class Piece(pygame.sprite.Group):
 		proper_dict = {}
 		for element, point_list in collide_dict.items():
 			for point in point_list:
-				if ((point.status in ['base', 'attracted'] and point.colour == '') or (point.colour == element.colour)):
+				if ((point.status in ['base', 'attracted'] and point.setting == '') or (point.setting == element.colour)):
 					proper_dict[element] = point
 				break
 
@@ -563,7 +563,7 @@ class Grid(pygame.sprite.Group):
 		if colour == '':
 			return []
 		else:
-			return [point for point in self.sprites() if point.colour == colour]
+			return [point for point in self.sprites() if point.setting == colour]
 
 	def show(self):
 		print("\nGrid origin %s / %s" % (str(self.x_offset), str(self.y_offset)))
@@ -603,7 +603,7 @@ def piece_generation(generator, piece_generation_x, piece_generation_y, piece_sp
 	pieces_dict = {}
 	
 	for colour, moves in generator.items():
-		new_piece = Piece(colour = colour, deck_position_x = piece_generation_x, deck_position_y = piece_generation_y, sequence = moves)
+		new_piece = Piece(colour = colour, deck_position_x = piece_generation_x, deck_position_y = piece_generation_y, build_sequence = moves)
 		pieces_group.add(new_piece)
 		pieces_dict[colour] = new_piece
 		piece_generation_x += piece_spacing #regular spacing of pieces in the deck
