@@ -397,10 +397,10 @@ class PuzzleGame():
         self.pieces_generator = pieces_generator
 
     def start(self, screen_width, screen_height):
-        self.grid = self.build_grid()
+        self.build_grid()
         self.grid.compute_rect()
         self.position_grid(0, 0, screen_width, 0.7*screen_height)
-        self.pieces_group, self.pieces_dict = self.build_pieces(self.pieces_generator)
+        self.build_pieces(self.pieces_generator)
         self.piece_distribute(0, screen_height, screen_width, 0.3*screen_height)
         
     def solve(self):
@@ -433,20 +433,18 @@ class PuzzleGame():
             pygame.draw.rect(surface, (0, 255, 0, 255), piece.bounding_rect, 1)
 
     def build_grid(self):
-        return Grid() #create a new grid
+        self.grid = Grid() #create a new grid
 
     def build_pieces(self, generator, piece_class = Piece):
         # generate pieces. I put pieces in a sprites group, and also in a dictionary for easier browsing
         #WARNING ALL PIECES ARE IN 0 POSITION IN THIS REFERENCE METHOD, NEED TO DISTRIBUTE
-        pieces_group = pygame.sprite.Group()
-        pieces_dict = {}
+        self.pieces_group = pygame.sprite.Group()
+        self.pieces_dict = {}
 
         for setting, moves in generator.items():
             new_piece = piece_class(setting=setting, build_sequence=moves)
-            pieces_group.add(new_piece)
-            pieces_dict[setting] = new_piece
-
-        return pieces_group, pieces_dict
+            self.pieces_group.add(new_piece)
+            self.pieces_dict[setting] = new_piece
     
     def position_grid(self, x, y, width, height):
         x_padding = ((width - self.grid.bounding_rect.width)/2) + (self.grid.x_offset - self.grid.bounding_rect.left) 

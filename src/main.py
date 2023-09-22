@@ -5,7 +5,7 @@ import pygame
 import sys
 from constants import RGB_COLOURS, SCREEN_WIDTH, SCREEN_HEIGHT
 import exceptions as exc
-import puzzles.puzzle_game
+# import puzzles.puzzle_game
 import puzzles.star_game
 
 #global references and constants
