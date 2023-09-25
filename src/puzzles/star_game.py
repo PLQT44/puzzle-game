@@ -33,13 +33,15 @@ class GridPoint(puzzles.hex_game.GridPoint):
             pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
             self.image.set_alpha(255)  # non-transparent
         elif self.status == 'attracted':
-            pygame.draw.circle(self.image, (0,0,0,128), (25,25), 1.5*self.radius)
-            self.image.set_alpha(128) #semi transparent
+            pygame.draw.circle(self.image, (0,0,0,255), (25,25), 1.5*self.radius)
+            # self.image.set_alpha(128) #semi transparent
         elif self.status == 'installed':
-            self.image.set_alpha(0)
+            pygame.draw.circle(self.image, (0,0,0,64), (25,25), self.radius)
+            # self.image.set_alpha(56)
         
         if self.setting != '':		
             self.image = pygame.image.load("./images/star_" + self.setting + ".png")
+            pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
             self.rect = self.image.get_rect()
             self.update_2D()
             self.image.set_alpha(128)

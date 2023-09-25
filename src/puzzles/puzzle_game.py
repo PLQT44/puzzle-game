@@ -202,14 +202,14 @@ class Piece(pygame.sprite.Group):
 
     def attach(self, elements_dict):
         self.status = 'installed'
-        self.origin.grid_point = elements_dict[self.origin]
-        self.set_pos(self.origin.grid_point)
+        self.set_pos(elements_dict[self.origin])
 
         for element in self.sprites():
             element.status = 'installed'
             element.grid_point = elements_dict[element]
             element.grid_point.status = 'installed'
-            element.grid_point.pieces = [self]
+            if self not in element.grid_point.pieces:
+                element.grid_point.pieces.append(self)
 
     def detach(self, target_status):
         # this function removes the piece from a grid.
@@ -218,13 +218,11 @@ class Piece(pygame.sprite.Group):
         for element in self.sprites():
             element.grid_point.status = target_status
             if target_status == 'base':
-                element.grid_point.pieces = []
+                element.grid_point.pieces.remove(self)
                 element.grid_point = None
             element.status = target_status
             element.x_offset = self.origin.rect.centerx
             element.y_offset = self.origin.rect.centery
-
-        # I have to move everyone to origin
 
         # manage status
         self.status = target_status
@@ -265,13 +263,15 @@ class Piece(pygame.sprite.Group):
                 element.status = 'attracted'
                 element.grid_point = match_dict[element]
                 element.grid_point.status = 'attracted'
-                element.grid_point.piece = self
+                if not self in element.grid_point.pieces:
+                    element.grid_point.pieces.append(self)
         else:
             if self.status == 'attracted':  # i was attracted but that's not the case anymore
                 for element in self.sprites():
                     element.status = 'moving'
-                    element.grid_point.status = 'base'
-                    element.grid_point.piece = None
+                    element.grid_point.pieces.remove(self)
+                    if len(element.grid_point.pieces) == 0:
+                        element.grid_point.status = 'base'
                     element.grid_point = None
                 self.status = 'moving'
         grid.normalize(match_dict)
@@ -468,8 +468,8 @@ class PuzzleGame():
                                        , self.main_label_padding)
 
     def solve(self):
-        self.deck = self.build_deck(self.pieces_dict)
-        self.grid, self.deck = self.recursive_pose(self.grid, self.deck)
+        self.build_deck(self.pieces_dict)
+        self.recursive_pose()
     
     def reinit(self):
         self.grid.reinit()
@@ -554,32 +554,32 @@ class PuzzleGame():
     def build_deck(self, pieces_dict):
         # takes the current status of the grid and of the pieces_dictionary, and returns a list of pieces which are still not installed, for solving algorithm
         # pieces_dict is structured as {piece_name : piece}
-        return [piece for piece in pieces_dict.values() if piece.status == 'base']
+        self.deck = [piece for piece in pieces_dict.values() if piece.status == 'base']
 
     ###############################################################################
     #                       SOLVING FUNCTIONS                                     #
     ###############################################################################
 
-    def recursive_pose(self, grid, deck):
+    def recursive_pose(self):
 
         # the core of the solving program. Tries to fill the grid with pieces in the deck. Returns the new grid and deck or exc.SolvingImpossibility if no solution is found
 
-        free_grid = grid.free_points()
-        if len(free_grid) == 0 or len(deck) == 0:  # no more free points or placed all pieces, cool!
-            return grid, deck
+        free_grid = self.grid.free_points()
+        if len(free_grid) == 0 or len(self.deck) == 0:  # no more free points or placed all pieces, cool!
+            return
 
         # I have free points, let's continue
         # A little bit of shuffling to change, then put the pieces that have points with their colours set at beginning
-        random.shuffle(deck)
-        set_settings_list = [point.setting for point in grid.sprites() if point.setting != '']
-        deck.sort(key=lambda piece: piece.setting in set_settings_list, reverse=True)
+        random.shuffle(self.deck)
+        set_settings_list = [point.setting for point in self.grid.sprites() if point.setting != '']
+        self.deck.sort(key=lambda piece: piece.setting in set_settings_list, reverse=True)
 
         # first, let's split, to test if there are very small sub-grids, in which case we need to exit
-        grid_list = self.grid_split(grid, grid_class = grid.__class__)
+        grid_list = self.grid_split(self.grid, grid_class = self.grid.__class__)
         sorted_grid_list = sorted(grid_list, key=lambda grid: len(grid))  # sort it
 
         # check if the number of free points is superior to the smallest piece, otherwise exit immediatly
-        if len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in deck]):
+        if len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in self.deck]):
             raise exc.SolvingImpossibility
 
         # shuffle the free_grid
@@ -588,25 +588,25 @@ class PuzzleGame():
         point_index = 0
         current_point = free_grid[point_index]  # let's start with first free point
         piece_index = 0
-        current_piece = deck[piece_index]  # take the first piece in the deck
+        current_piece = self.deck[piece_index]  # take the first piece in the deck
         current_piece.set_pos(current_point)  # I place in first grid's free point
 
         # now is the main loop
         while_exit = False
         while not (while_exit):
             # try to put the current_piece on the grid
-            success, fitting_points = current_piece.check_fit(grid)
+            success, fitting_points = current_piece.check_fit(self.grid)
             if success:  # it fits!
                 current_piece.attach(fitting_points)
-                deck.remove(current_piece)
+                self.deck.remove(current_piece)
                 # now let's enter next recursion level
                 try:
-                    next_grid, next_deck = self.recursive_pose(grid, deck)
-                    return next_grid, next_deck
+                    self.recursive_pose()
+                    return
                 except exc.SolvingImpossibility:  # I didn't manage to solve the sub-grid
                     current_piece.detach('base')
                     # logically put the piece back in the deck
-                    deck.insert(piece_index, current_piece)
+                    self.deck.insert(piece_index, current_piece)
                     # I need to make the next move for piece
                     point_index, current_point = current_piece.next_move(
                         point_index, free_grid)

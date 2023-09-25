@@ -166,8 +166,10 @@ class PieceElement(HexPoint, puzzles.puzzle_game.PieceElement):
         puzzles.puzzle_game.PieceElement.__init__(self, setting, x_offset, y_offset)
         
     def update(self):
-        if self.status in ['base', 'installed']:
+        if self.status == 'base':
             self.image.set_alpha(255)
+        elif self.status == 'installed':
+            self.image.set_alpha(192)
         else:
             self.image.set_alpha(128)
 
@@ -210,14 +212,12 @@ class Piece(puzzles.puzzle_game.Piece):
 
     def set_pos(self, point):
         # I have to move everyone in 3D hex to the point's coordinates
-        vector = (point.Hx-self.origin.Hx, point.Hy-self.origin.Hy, point.Hz-self.origin.Hz)
-        self.translate(vector)
-
         for element in self.sprites():
             element.x_offset = point.x_offset
             element.y_offset = point.y_offset
-
-        self.update_2D()
+            
+        vector = (point.Hx-self.origin.Hx, point.Hy-self.origin.Hy, point.Hz-self.origin.Hz)
+        self.translate(vector)
 
     def local_unit_move(self, local_move=''):
         pass #should be game_dependant
