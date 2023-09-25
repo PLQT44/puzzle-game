@@ -85,7 +85,7 @@ class GridPoint(GamePoint):
         self.display_update()
 
     def clone(self):
-        return GridPoint(self.x_offset, self.y_offset)
+        return GridPoint(self.x_offset, self.y_offset, self.setting_list)
 
     def reinit(self):
         self.status = 'base'
@@ -221,8 +221,8 @@ class Piece(pygame.sprite.Group):
                 element.grid_point.pieces = []
                 element.grid_point = None
             element.status = target_status
-            element.x_offset = self.origin.rect.x
-            element.y_offset = self.origin.rect.y
+            element.x_offset = self.origin.rect.centerx
+            element.y_offset = self.origin.rect.centery
 
         # I have to move everyone to origin
 
@@ -288,9 +288,9 @@ class Piece(pygame.sprite.Group):
                     if any(sprite.rect.collidepoint(event.pos) for sprite in self.sprites()):
                         if self.status == 'base':  # the piece was in the deck, now it moves
                             # I register the relative position of mouse and of origin piece
-                            self.origin.offset_x = self.origin.rect.x - \
+                            self.origin.offset_x = self.origin.rect.centerx - \
                                 event.pos[0]
-                            self.origin.offset_y = self.origin.rect.y - \
+                            self.origin.offset_y = self.origin.rect.centery - \
                                 event.pos[1]
                             self.status = 'moving'
                             for element in self.sprites():
@@ -298,9 +298,9 @@ class Piece(pygame.sprite.Group):
 
                         elif self.status == 'installed':  # the piece was installed, i detach it
                             # I register the relative position of mouse and of origin piece
-                            self.origin.offset_x = self.origin.rect.x - \
+                            self.origin.offset_x = self.origin.rect.centerx - \
                                 event.pos[0]
-                            self.origin.offset_y = self.origin.rect.y - \
+                            self.origin.offset_y = self.origin.rect.centery - \
                                 event.pos[1]
                             self.detach('attracted')
 
@@ -396,13 +396,77 @@ class PuzzleGame():
         self.setting_list = setting_list
         self.pieces_generator = pieces_generator
 
-    def start(self, screen_width, screen_height):
+    def start(self, screen_width, screen_height, reference_message):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
         self.build_grid()
-        self.grid.compute_rect()
-        self.position_grid(0, 0, screen_width, 0.7*screen_height)
         self.build_pieces(self.pieces_generator)
-        self.piece_distribute(0, screen_height, screen_width, 0.3*screen_height)
+        self.start_layout(reference_message, main_label_padding=50)
+
+    def start_layout(self, reference_message, main_label_padding):
+        #create font
+        self.game_font = pygame.font.Font(None, 36)
         
+        #initiate main label's message
+        self.main_message = reference_message
+
+        #create Sprite for the main label text
+        self.main_label_padding = main_label_padding
+        self.main_text_surface = self.game_font.render(self.main_message, True, RGB_COLOURS['black'])  # Text, antialiasing, color
+        self.main_label = pygame.sprite.Sprite()
+        self.main_label.image = self.main_text_surface
+        self.main_label.rect = self.main_text_surface.get_rect(x=(self.screen_width-self.main_text_surface.get_width())/2,
+                                                               y = self.main_label_padding)
+        
+        #Store the label's height
+        self.main_label_height = self.main_label.image.get_height() + 2*self.main_label_padding
+
+        #create rectangle sprite to show around main label
+        self.main_label_frame = pygame.sprite.Sprite()
+        self.main_label_frame.image = pygame.Surface((self.screen_width, self.main_label_height))
+        self.main_label_frame.image.fill('white')
+        self.main_label_frame.rect = self.main_label_frame.image.get_rect()
+        pygame.draw.rect(self.main_label_frame.image, (0,0,0), 
+                         self.main_label_frame.rect, width=2, border_radius=20)
+
+        #create rectangle sprite to show around the grid
+        self.grid_frame = pygame.sprite.Sprite()
+        self.grid_frame.image = pygame.Surface((self.screen_width, 0.7*(self.screen_height - self.main_label_height)))
+        self.grid_frame.image.fill('white')
+        self.grid_frame.rect = self.grid_frame.image.get_rect()
+        self.grid_frame.rect.topleft = (0, self.main_label_height)
+        pygame.draw.rect(self.grid_frame.image, (0,0,0), 
+                         self.grid_frame.image.get_rect(), width=2, border_radius=20)
+
+        #create rectangle sprite to show around the deck
+        self.deck_frame = pygame.sprite.Sprite()
+        self.deck_frame.image = pygame.Surface((self.screen_width, 0.3*(self.screen_height - self.main_label_height)))
+        self.deck_frame.image.fill('white')
+        self.deck_frame.rect = self.deck_frame.image.get_rect()
+        self.deck_frame.rect.bottomleft = (0, self.screen_height)
+        pygame.draw.rect(self.deck_frame.image, (0,0,0), 
+                         self.deck_frame.image.get_rect(), width=2, border_radius=20)
+
+
+        #create group for theses layout sprites, and add the sprites
+        self.layout_sprites = pygame.sprite.Group()
+        self.layout_sprites.add(self.main_label_frame)
+        self.layout_sprites.add(self.grid_frame)
+        self.layout_sprites.add(self.deck_frame)
+        self.layout_sprites.add(self.main_label)
+
+        #finally, position grid and deck correctly
+        self.layout_update()
+
+    def update_main_label(self, message):
+        #mask previous text
+        self.main_label.image.fill("white")
+    
+        #show new text
+        self.main_label.image = self.game_font.render(message, True, RGB_COLOURS['black'])  # Text, antialiasing, color
+        self.main_label.rect.topleft = ((self.screen_width-self.main_label.image.get_width())/2
+                                       , self.main_label_padding)
+
     def solve(self):
         self.deck = self.build_deck(self.pieces_dict)
         self.grid, self.deck = self.recursive_pose(self.grid, self.deck)
@@ -412,6 +476,11 @@ class PuzzleGame():
         for piece in self.pieces_dict.values():
             piece.reinit_to_deck()
     
+    def layout_update(self):
+        self.position_grid(0, self.main_label_height
+                           , self.screen_width, 0.7*(self.screen_height - self.main_label_height))
+        self.piece_distribute(0.3*(self.screen_height - self.main_label_height))
+
     def draw(self, event_list, surface):
         
         for piece in self.pieces_dict.values():
@@ -419,9 +488,11 @@ class PuzzleGame():
         self.grid.update(event_list)
 
         #show the sprites
+        self.layout_sprites.draw(surface)
         self.grid.draw(surface)
         self.pieces_group.draw(surface)
-        # self.draw_rects(surface)
+        
+        #self.draw_rects(surface)
 
     def draw_rects(self, surface):
         pygame.draw.rect(surface, (255,0,0,255), self.grid.bounding_rect, 2)
@@ -447,26 +518,33 @@ class PuzzleGame():
             self.pieces_dict[setting] = new_piece
     
     def position_grid(self, x, y, width, height):
-        x_padding = ((width - self.grid.bounding_rect.width)/2) + (self.grid.x_offset - self.grid.bounding_rect.left) 
-        y_padding = ((height - self.grid.bounding_rect.height)/2) - (self.grid.y_offset - self.grid.bounding_rect.bottom)
+        self.grid.compute_rect()
+        x_padding = x + ((width - self.grid.bounding_rect.width)/2) + (self.grid.x_offset - self.grid.bounding_rect.left) 
+        y_padding = (y
+                    + (height - self.grid.bounding_rect.height)/2
+                    + self.grid.bounding_rect.height
+                    + (self.grid.y_offset - self.grid.bounding_rect.bottom))
+
+        self.grid.x_offset = x_padding
+        self.grid.y_offset = y_padding
 
         for point in self.grid.sprites():
             point.x_offset = x_padding
-            point.y_offset = y_padding + self.grid.bounding_rect.height
+            point.y_offset = y_padding
             point.update_2D()
 
         self.grid.compute_rect()
 
-    def piece_distribute(self, x, y, width, height):
+    def piece_distribute(self, height):
         num_pieces = len(self.pieces_dict.keys())
         
         cumulated_pieces_width = sum([piece.bounding_rect.width for piece in self.pieces_dict.values()])
-        x_deck_spacing = (width - cumulated_pieces_width)/(num_pieces + 1)
+        x_deck_spacing = (self.screen_width - cumulated_pieces_width)/(num_pieces + 1)
 
         y_padding = (height-max([piece.bounding_rect.height for piece in self.pieces_dict.values()]))/2
 
-        reference_y = y - y_padding
-        reference_x = x + x_deck_spacing
+        reference_y = self.screen_height - y_padding
+        reference_x = x_deck_spacing
 
         for piece in self.pieces_dict.values():
             piece.set_2D(reference_x + piece.origin.rect.centerx - piece.bounding_rect.left, 

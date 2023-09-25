@@ -12,19 +12,6 @@ import puzzles.star_game
 
 REFERENCE_MESSAGE = "Press Enter to Solve, 'I' to init"
 
-# create function for updating and showing the main label
-def update_main_label(screen, text, text_rect, font, message = REFERENCE_MESSAGE):
-	
-	#mask previous text
-	text.fill("white")
-	screen.blit(text, text_rect)
-
-	#show new text
-	text = font.render(message, True, RGB_COLOURS['black'])  # Text, antialiasing, color
-	text_rect = text.get_rect()
-	text_rect.center = (SCREEN_WIDTH // 2, 50)  # Center the text
-	screen.blit(text, text_rect)	
-
 def choose_game():
 	return puzzles.star_game.StarGame()
 
@@ -38,18 +25,12 @@ def execute_main():
 
 	#CHOOSE GAME
 	game = choose_game()
-	game.start(SCREEN_WIDTH, SCREEN_HEIGHT)
+	main_message = REFERENCE_MESSAGE
+	game.start(SCREEN_WIDTH, SCREEN_HEIGHT, REFERENCE_MESSAGE)
 
 	# load and set the logo TO BE ADAPTED WITH CHOSEN GAME
 	pygame.display.set_icon(game.icon)
 	pygame.display.set_caption(game.caption)
-
-	# Initiate message
-	main_message = REFERENCE_MESSAGE
-	main_font = pygame.font.Font(None, 36)
-	main_text = main_font.render(REFERENCE_MESSAGE, True, RGB_COLOURS['black'])  # Text, antialiasing, color
-	main_text_rect = main_text.get_rect()
-	main_text_rect.center = (SCREEN_WIDTH // 2, 50)  # Center the text
 
 	# create a label timer
 	label_timer_active = False
@@ -67,7 +48,8 @@ def execute_main():
 				running = False
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_RETURN:
-					update_main_label(screen, main_text, main_text_rect, main_font, "SOLVING...")
+					game.update_main_label("SOLVING...")
+					game.draw(event_list, screen)
 					overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
 					overlay.fill((0, 0, 0, 128))
 					screen.blit(overlay, (0,0))
@@ -94,14 +76,14 @@ def execute_main():
 					
 		# fill the screen with a color to wipe away anything from last frame
 		screen.fill("white")
-		game.draw(event_list, screen)
-
 		#manage label timer and show message
 		if label_timer_active and current_time - start_time >= label_timer_duration:
 			main_message = REFERENCE_MESSAGE
-
+			
 		#mask previous text
-		update_main_label(screen, main_text, main_text_rect, main_font, main_message)
+		game.update_main_label(main_message)
+
+		game.draw(event_list, screen)
 		
 		# flip() the display to put your work on screen
 		pygame.display.flip()
