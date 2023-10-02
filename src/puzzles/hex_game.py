@@ -86,6 +86,16 @@ class HexPoint(puzzles.puzzle_game.GamePoint):
         self.Hy += -distance
         self.update_2D()
 
+    def set_pos(self, point):
+        self.x_offset = point.x_offset
+        self.y_offset = point.y_offset
+
+        self.Hx = point.Hx
+        self.Hy = point.Hy
+        self.Hz = point.Hz
+
+        self.update_2D()
+
     def translate(self, vector = (0,0,0)):
         #add vector to point
         self.Hx += vector[0]
@@ -99,6 +109,15 @@ class HexPoint(puzzles.puzzle_game.GamePoint):
         new_x = - self.Hy + rotation_center.Hy + rotation_center.Hx
         new_y = self.Hx + self.Hy - rotation_center.Hx
         new_z = new_x + new_y
+        self.Hx = new_x
+        self.Hy = new_y
+        self.Hz = new_z
+        self.update_2D()
+
+    def flip(self, origin):    
+        new_x = self.Hz - origin.Hy
+        new_y = -self.Hy + 2*origin.Hy
+        new_z = self.Hx + origin.Hy
         self.Hx = new_x
         self.Hy = new_y
         self.Hz = new_z
@@ -161,17 +180,18 @@ class GridPoint(HexPoint, puzzles.puzzle_game.GridPoint):
     
 class PieceElement(HexPoint, puzzles.puzzle_game.PieceElement):
 
-    def __init__(self, setting, Hx = 0, Hy = 0, Hz = 0, x_offset = 0, y_offset = 0):
-        HexPoint.__init__(self, Hx, Hy, Hz, x_offset, y_offset)
+    def __init__(self, setting, x_offset, y_offset):
+        HexPoint.__init__(self, x_offset, y_offset)
         puzzles.puzzle_game.PieceElement.__init__(self, setting, x_offset, y_offset)
         
     def update(self):
+        self.collision_rect.center = self.rect.center
         if self.status == 'base':
             self.image.set_alpha(255)
         elif self.status == 'installed':
-            self.image.set_alpha(192)
+            self.image.set_alpha(255)
         else:
-            self.image.set_alpha(128)
+            self.image.set_alpha(190)
 
 class Piece(puzzles.puzzle_game.Piece):
 
@@ -183,20 +203,18 @@ class Piece(puzzles.puzzle_game.Piece):
     def __init__(self, setting, 
               deck_position_x = 0, 
               deck_position_y = 0, 
-              build_sequence = [], local_move_list = []):
-        super().__init__(setting, deck_position_x, deck_position_y, build_sequence=build_sequence, local_move_list = local_move_list)
+              piece_build_sequence = [], local_move_list = []):
+        super().__init__(setting, deck_position_x, deck_position_y, piece_build_sequence=piece_build_sequence, local_move_list = local_move_list)
     
     def rotate(self):
         for element in self.sprites():
             element.rotate(self.origin)
-    
+
     def reinit(self):
-        # I set local_move_index to 0
+        # I local_move enough to come back to initial position
         for i in range(self.local_move_index, self.local_move_length):
             self.local_unit_move(self.local_move_list[i])
         
-        self.local_move_index = 0
-
         # I have to move everyone in 3D hex to origin
         vector = (-self.origin.Hx, -self.origin.Hy, -self.origin.Hz)
         self.translate(vector)
@@ -218,9 +236,6 @@ class Piece(puzzles.puzzle_game.Piece):
             
         vector = (point.Hx-self.origin.Hx, point.Hy-self.origin.Hy, point.Hz-self.origin.Hz)
         self.translate(vector)
-
-    def local_unit_move(self, local_move=''):
-        pass #should be game_dependant
 
     def detach(self, target_status):
         super().detach(target_status)

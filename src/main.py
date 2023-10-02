@@ -7,13 +7,14 @@ from constants import RGB_COLOURS, SCREEN_WIDTH, SCREEN_HEIGHT
 import exceptions as exc
 # import puzzles.puzzle_game
 import puzzles.star_game
+import puzzles.bubble_game
 
 #global references and constants
 
 REFERENCE_MESSAGE = "Press Enter to Solve, 'I' to init"
 
 def choose_game():
-	return puzzles.star_game.StarGame()
+	return puzzles.bubble_game.BubbleGame()
 
 def execute_main():
 	
@@ -59,7 +60,7 @@ def execute_main():
 					label_timer_active = True
 					start_time = current_time
 					try :
-						game.solve()
+						game.solve(screen)
 						current_time = pygame.time.get_ticks() #calculation may take some time
 						main_message = "SOLVED! - in {:.2f} seconds".format((current_time-start_time)/1000)
 						start_time = current_time

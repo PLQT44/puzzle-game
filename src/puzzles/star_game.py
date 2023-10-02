@@ -48,11 +48,11 @@ class GridPoint(puzzles.hex_game.GridPoint):
     
 class PieceElement(puzzles.hex_game.PieceElement):
     
-    def __init__(self, setting, Hx = 0, Hy = 0, Hz = 0, x_offset = 0, y_offset = 0):
-        super().__init__(setting, Hx, Hy, Hz, x_offset, y_offset)
+    def __init__(self, colour, Hx = 0, Hy = 0, Hz = 0, x_offset = 0, y_offset = 0):
+        super().__init__(colour, Hx, Hy, Hz, x_offset, y_offset)
 
-        # Create a surface for the sprite - a star image
-        self.image = pygame.image.load("./images/star_" + setting + ".png")
+        # Create a surface for the sprite - a bubble image
+        self.image = pygame.image.load("./images/star_" + colour + ".png")
 
         # Set the sprite's rect (position and size)
         self.rect = self.image.get_rect()
@@ -91,6 +91,7 @@ class Piece(puzzles.hex_game.Piece):
 
     def local_unit_move(self, local_move=''):
         self.rotate()
+        super().local_unit_move(local_move)
     
 class Grid(puzzles.hex_game.Grid):
 
