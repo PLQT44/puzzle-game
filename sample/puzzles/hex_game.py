@@ -169,7 +169,13 @@ class GridPoint(HexPoint, puzzles.puzzle_game.GridPoint):
         self.update_2D()
     
     def display_update(self):
-        pass #this one is really game-dependant
+        if len(self.elements) == 0:
+            pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
+            self.image.set_alpha(100)  # non-transparent
+        elif 'attracted' in [element.status for element in self.elements]:
+            pygame.draw.circle(self.image, (0,0,0,200), (25,25), 1.5*self.radius)
+        else :
+            pygame.draw.circle(self.image, (0,0,0,100), (25,25), 1.2*self.radius)
 
     def update(self, event_list=[]):
         puzzles.puzzle_game.GridPoint.update(self,event_list)

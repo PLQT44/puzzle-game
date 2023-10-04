@@ -43,15 +43,6 @@ ICON_PATH = './images/bubble_pink_out_.png'
 ################################################################################
 
 class GridPoint(puzzles.hex_game.GridPoint):
-        
-    def display_update(self):
-        if len(self.elements) == 0:
-            pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
-            self.image.set_alpha(100)  # non-transparent
-        elif 'attracted' in [element.status for element in self.elements]:
-            pygame.draw.circle(self.image, (0,0,0,200), (25,25), 1.5*self.radius)
-        else :
-            pygame.draw.circle(self.image, (0,0,0,100), (25,25), 1.2*self.radius)
     
     def match_neighbour_direction(self, point): 
         #to be further detailed. this is needed when self surrounded by 'out'pieces
@@ -355,18 +346,4 @@ class BubbleGame(puzzles.hex_game.HexGame):
     #     self.deck.sort(key=lambda piece: sum(len(element.out_directions) for element in piece.sprites()), reverse=True)
     #     self.recursive_pose(surface)
 
-    def show(self, surface):
-        # fill the screen with a color to wipe away anything from last frame
-        surface.fill("white")
-
-        self.grid.update()
-        for piece in self.pieces_dict.values():
-            piece.update(grid = self.grid)
-
-        #show the sprites
-        self.grid.draw(surface)
-        for piece in self.pieces_dict.values():
-            piece.draw(surface)
-
-        # flip() the display to put your work on screen
-        pygame.display.flip()
+    

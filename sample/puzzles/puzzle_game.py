@@ -67,7 +67,7 @@ class GridPoint(GamePoint):
         self.elements = []
 
     def is_free(self):
-        return len(self.elements) < 2
+        return len(self.elements) == 0
 
     def display_update(self):
         pass
@@ -111,6 +111,7 @@ class PieceElement(GamePoint):
         self.setting = setting
         self.status = 'base'
         self.grid_point = None
+        self.collision_rect = pygame.Rect(self.rect)
 
     def update(self):
         super().update()
@@ -189,8 +190,7 @@ class Piece(pygame.sprite.Group):
         self.reinit_to_deck() #back to basic location
         point_index += 1
         try: #try next point in free_grid
-            current_point = free_grid[point_index]
-            self.set_pos(current_point)
+            self.set_pos(free_grid[point_index])
             return point_index 
         except: #I tried all free points
             raise exc.FinalMove
@@ -209,7 +209,6 @@ class Piece(pygame.sprite.Group):
         for element in self.sprites():
             element.status = 'installed'
             element.grid_point = elements_dict[element]
-            element.grid_point.status = 'installed'
             if element not in element.grid_point.elements:
                 element.grid_point.elements.append(element)
             if self not in element.grid_point.pieces:
@@ -236,15 +235,21 @@ class Piece(pygame.sprite.Group):
 
         # let's test and handle collisions!
         collide_dict = pygame.sprite.groupcollide(
-            self, grid, False, False, pygame.sprite.collide_rect_ratio(0.1))
+            self, grid, False, False, pygame.sprite.collide_rect_ratio(0.3))
 
         # remove occupied points
         proper_dict = {}
         for element, point_list in collide_dict.items():
             for point in point_list:
-                if ((point.status in ['base', 'attracted'] and point.setting == '') or (point.setting == element.setting)):
+                if point.setting == '' and point.setting == element.setting:
                     proper_dict[element] = point
-                break
+                    break
+                if len(point.elements) == 0:
+                    proper_dict[element] = point
+                    break
+                if point.elements[0] == element:
+                    proper_dict[element] = point
+                    break
 
         return proper_dict
 
@@ -413,6 +418,22 @@ class PuzzleGame():
         self.setting_list = setting_list
         self.pieces_generator = pieces_generator
 
+    def show(self, surface):
+        # fill the screen with a color to wipe away anything from last frame
+        surface.fill("white")
+
+        self.grid.update()
+        for piece in self.pieces_dict.values():
+            piece.update(grid = self.grid)
+
+        #show the sprites
+        self.grid.draw(surface)
+        for piece in self.pieces_dict.values():
+            piece.draw(surface)
+
+        # flip() the display to put your work on screen
+        pygame.display.flip()
+        
     def start(self, screen_width, screen_height, reference_message):
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -531,7 +552,7 @@ class PuzzleGame():
         self.pieces_dict = {}
 
         for setting, piece_build_sequence in generator.items():
-            new_piece = piece_class(colour=setting, piece_build_sequence=piece_build_sequence)
+            new_piece = piece_class(setting, piece_build_sequence=piece_build_sequence)
             self.pieces_group.add(new_piece)
             self.pieces_dict[setting] = new_piece
     
@@ -588,12 +609,12 @@ class PuzzleGame():
         free_grid = self.grid.free_points()
 
         if len(free_grid) == 0 or len(self.deck) == 0:  # no more free points or placed all pieces, cool!
-            return
+            return True
 
         # I have free points, let's continue
         # Put the pieces that have points with their colours set at beginning
-        # set_settings_list = [point.setting for point in self.grid.sprites() if point.setting != '']
-        # self.deck.sort(key=lambda piece: piece.setting in set_settings_list, reverse=True)
+        set_settings_list = [point.setting for point in self.grid.sprites() if point.setting != '']
+        self.deck.sort(key=lambda piece: piece.setting in set_settings_list, reverse=True)
 
         # let's analyse the split grid and optimise accordingly
         grid_list = self.grid_split(free_grid)
@@ -616,13 +637,12 @@ class PuzzleGame():
             raise exc.SolvingImpossibility
 
         # shuffle the free_grid
-        random.shuffle(free_grid)
+        # random.shuffle(free_grid)
 
         point_index = 0
-        current_point = free_grid[point_index]  # let's start with first free point
         piece_index = 0
         current_piece = self.deck[piece_index]  # take the first piece in the deck
-        current_piece.set_pos(current_point)  # I place in first grid's free point
+        current_piece.set_pos(free_grid[point_index])  # I place in first grid's free point
 
         # now is the main loop
         while_exit = False
@@ -635,7 +655,7 @@ class PuzzleGame():
                 # now let's enter next recursion level
                 try:
                     self.recursive_pose(surface)
-                    return
+                    return True
                 except exc.SolvingImpossibility:  # I didn't manage to solve the sub-grid
                     current_piece.detach('base')
                     # logically put the piece back in the deck

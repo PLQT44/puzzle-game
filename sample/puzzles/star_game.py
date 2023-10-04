@@ -29,16 +29,7 @@ ICON_PATH = './images/Star_icon_stylized.svg.png'
 class GridPoint(puzzles.hex_game.GridPoint):
         
     def display_update(self):
-        if self.status == 'base':
-            pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
-            self.image.set_alpha(255)  # non-transparent
-        elif self.status == 'attracted':
-            pygame.draw.circle(self.image, (0,0,0,255), (25,25), 1.5*self.radius)
-            # self.image.set_alpha(128) #semi transparent
-        elif self.status == 'installed':
-            pygame.draw.circle(self.image, (0,0,0,64), (25,25), self.radius)
-            # self.image.set_alpha(56)
-        
+        super().display_update()    
         if self.setting != '':		
             self.image = pygame.image.load("./images/star_" + self.setting + ".png")
             pygame.draw.circle(self.image, (0,0,0,255), (25,25), self.radius)
@@ -49,13 +40,19 @@ class GridPoint(puzzles.hex_game.GridPoint):
 class PieceElement(puzzles.hex_game.PieceElement):
     
     def __init__(self, colour, Hx = 0, Hy = 0, Hz = 0, x_offset = 0, y_offset = 0):
-        super().__init__(colour, Hx, Hy, Hz, x_offset, y_offset)
+        super().__init__(colour, x_offset, y_offset)
 
         # Create a surface for the sprite - a bubble image
         self.image = pygame.image.load("./images/star_" + colour + ".png")
 
         # Set the sprite's rect (position and size)
         self.rect = self.image.get_rect()
+
+        #Set the 3D Hex coordinates
+        self.Hx = Hx
+        self.Hy = Hy
+        self.Hz = Hz
+
         self.update_2D()
 
 class Piece(puzzles.hex_game.Piece):
@@ -63,8 +60,8 @@ class Piece(puzzles.hex_game.Piece):
     def __init__(self, setting, 
               deck_position_x = 0, 
               deck_position_y = 0, 
-              build_sequence = [], local_move_list = LOCAL_MOVE_LIST):
-        super().__init__(setting, deck_position_x, deck_position_y, build_sequence=build_sequence, local_move_list = local_move_list)
+              piece_build_sequence = [], local_move_list = LOCAL_MOVE_LIST):
+        super().__init__(setting, deck_position_x, deck_position_y, piece_build_sequence=piece_build_sequence, local_move_list = local_move_list)
 
         # Add first element to the group
         piece_element_1 = PieceElement(setting, 
@@ -75,8 +72,8 @@ class Piece(puzzles.hex_game.Piece):
 
         # create elements based on build_sequence of moves
         ref_elt = piece_element_1
-        for move in build_sequence:
-            new_element = PieceElement(setting = ref_elt.setting,
+        for move in piece_build_sequence:
+            new_element = PieceElement(ref_elt.setting,
                               Hx = ref_elt.Hx,
                               Hy = ref_elt.Hy,
                               Hz = ref_elt.Hz,
