@@ -599,49 +599,31 @@ class PuzzleGame():
     #                       SOLVING FUNCTIONS                                     #
     ###############################################################################
 
-    def recursive_pose(self, surface):
+    def recursive_pose(self, surface, free_grid = None, deck = None):
 
         # the core of the solving program. Tries to fill the grid with pieces in the deck. Returns the new grid and deck or exc.SolvingImpossibility if no solution is found
         self.show(surface)
 
         # free_points() should return an optimised list of free points
         # including split, sort, elimination of two small sub-grids, sorting based on setting
-        free_grid = self.grid.free_points()
+        if free_grid is None:
+            free_grid = self.grid.free_points()
+        if deck is None:
+            deck = self.deck
 
-        if len(free_grid) == 0 or len(self.deck) == 0:  # no more free points or placed all pieces, cool!
+        if len(free_grid) == 0 or len(deck) == 0:  # no more free points or placed all pieces, cool!
             return True
 
         # I have free points, let's continue
         # Put the pieces that have points with their colours set at beginning
-        set_settings_list = [point.setting for point in self.grid.sprites() if point.setting != '']
-        self.deck.sort(key=lambda piece: piece.setting in set_settings_list, reverse=True)
-
-        # let's analyse the split grid and optimise accordingly
-        grid_list = self.grid_split(free_grid)
-        sorted_grid_list = sorted(grid_list, key=lambda grid: len(grid))  # sort it
-
-        if self.complete_game and len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in self.deck]):
-            # it is a "complete" game (all points must be occupied) 
-            # and the smallest sub-grid is smaller than the desk minimum
-            raise exc.SolvingImpossibility
-            
-        while len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in self.deck]):
-            #I can just remove the points of the sub_grid from the free grid
-            for point in sorted_grid_list[0]:
-                free_grid.remove(point)
-            sorted_grid_list.pop(0)
-            if len(sorted_grid_list) == 0:
-                break                
+        sorted_grid_list, free_grid, deck = self.optimize_grid_and_deck(free_grid, deck)                
         
-        if len(free_grid) == 0 and len(self.deck) >0:
+        if len(free_grid) == 0 and len(deck) >0:
             raise exc.SolvingImpossibility
-
-        # shuffle the free_grid
-        # random.shuffle(free_grid)
 
         point_index = 0
         piece_index = 0
-        current_piece = self.deck[piece_index]  # take the first piece in the deck
+        current_piece = deck[piece_index]  # take the first piece in the deck
         current_piece.set_pos(free_grid[point_index])  # I place in first grid's free point
 
         # now is the main loop
@@ -651,7 +633,7 @@ class PuzzleGame():
             success, fitting_points = current_piece.check_fit(self.grid)
             if success:  # it fits!
                 current_piece.attach(fitting_points)
-                self.deck.pop(piece_index)
+                deck.pop(piece_index)
                 # now let's enter next recursion level
                 try:
                     self.recursive_pose(surface)
@@ -659,7 +641,7 @@ class PuzzleGame():
                 except exc.SolvingImpossibility:  # I didn't manage to solve the sub-grid
                     current_piece.detach('base')
                     # logically put the piece back in the deck
-                    self.deck.insert(piece_index, current_piece)
+                    deck.insert(piece_index, current_piece)
                     # I need to make the next move for piece
                     try:
                         point_index = current_piece.next_move(point_index, free_grid)
@@ -668,11 +650,36 @@ class PuzzleGame():
 
             else:  # if piece does not fit, I move to next possibility
                 try:
+
                     point_index = current_piece.next_move(point_index, free_grid)
                 except exc.FinalMove:
                     while_exit = True
         
         raise exc.SolvingImpossibility
+
+    def optimize_grid_and_deck(self, free_grid, deck):
+
+        set_settings_list = [point.setting for point in self.grid.sprites() if point.setting != '']
+        deck.sort(key=lambda piece: piece.setting in set_settings_list, reverse=True)
+
+        # let's analyse the split grid and optimise accordingly
+        grid_list = self.grid_split(free_grid)
+        sorted_grid_list = sorted(grid_list, key=lambda grid: len(grid))  # sort it
+
+        if self.complete_game and len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in deck]):
+            # it is a "complete" game (all points must be occupied) 
+            # and the smallest sub-grid is smaller than the desk minimum
+            raise exc.SolvingImpossibility
+            
+        while len(sorted_grid_list[0]) < min([len(piece.sprites()) for piece in deck]):
+            #I can just remove the points of the sub_grid from the free grid
+            for point in sorted_grid_list[0]:
+                free_grid.remove(point)
+            sorted_grid_list.pop(0)
+            if len(sorted_grid_list) == 0:
+                break
+        
+        return sorted_grid_list, free_grid, deck
 
     def group_distance(anchor_point, point_list):
         if len(point_list) > 0:
