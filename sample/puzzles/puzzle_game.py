@@ -468,7 +468,7 @@ class PuzzleGame():
         self.main_label_frame.image.fill('white')
         self.main_label_frame.rect = self.main_label_frame.image.get_rect()
         pygame.draw.rect(self.main_label_frame.image, (0,0,0), 
-                         self.main_label_frame.rect, width=2, border_radius=20)
+                         self.main_label_frame.rect, width=1, border_radius=10)
 
         #create rectangle sprite to show around the grid
         self.grid_frame = pygame.sprite.Sprite()
@@ -477,7 +477,7 @@ class PuzzleGame():
         self.grid_frame.rect = self.grid_frame.image.get_rect()
         self.grid_frame.rect.topleft = (0, self.main_label_height)
         pygame.draw.rect(self.grid_frame.image, (0,0,0), 
-                         self.grid_frame.image.get_rect(), width=2, border_radius=20)
+                         self.grid_frame.image.get_rect(), width=1, border_radius=10)
 
         #create rectangle sprite to show around the deck
         self.deck_frame = pygame.sprite.Sprite()
