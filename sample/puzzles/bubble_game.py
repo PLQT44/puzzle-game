@@ -6,7 +6,7 @@
 
 # imports
 from itertools import cycle
-import tkinter
+import pickle
 import numpy
 import pygame
 import exceptions as exc
@@ -155,8 +155,10 @@ class PieceElement(puzzles.hex_game.PieceElement):
 
         #I need a rotation indicator
         self.rotation_status = 0
+        self.is_flipped = False
 
         # I specify outgoing directions
+        self.direction_string = element_build_sequence[0] + element_build_sequence[1]
         self.out_directions = [ANGLE_DICT[direction] for direction in element_build_sequence[1].split(',') if direction != '']
 
         # create image 
@@ -334,16 +336,36 @@ class BubbleGame(puzzles.hex_game.HexGame):
     def __init__(self):
         super().__init__("BubbleGame", "Bubble Puzzle", ICON_PATH, SETTING_LIST, PIECES_GENERATOR)
         self.complete_game = False
+        self.packing_value = 2
 
     def build_grid(self):
         self.grid = Grid(GRID_WIDTH, GRID_HEIGHT, 0, 0, SETTING_LIST)
 
+    def my_hash(self, point_list = [], deck = []):
+        
+        point_string_list = sorted([f"{point.Hx}{point.Hy}{point.Hz}{point.setting}{' '.join(sorted(f'{element.direction_string}{element.rotation_status}{element.is_flipped}' for element in point.elements))}" for point in point_list])
+        piece_string_list = sorted([piece.setting for piece in deck])
+
+        return hash(''.join(point_string_list) + ''.join(piece_string_list))
+
     def build_pieces(self, generator):
         super().build_pieces(generator, Piece)
 
-    # def solve(self, surface):
-    #     self.build_deck(self.pieces_dict)
-    #     self.deck.sort(key=lambda piece: sum(len(element.out_directions) for element in piece.sprites()), reverse=True)
-    #     self.recursive_pose(surface)
+    def solve(self, surface):
+        self.build_deck(self.pieces_dict)
+        self.deck.sort(key=lambda piece: sum(len(element.out_directions) for element in piece.sprites()), reverse=True)
+        # try:
+        #     file_object = open('bubble_known_failed_grids.pydata', 'rb')
+        #     self.known_failed_grids = pickle.load(file_object)
+        #     file_object.close()
+        # except:
+        #     self.known_failed_grids = []
+        self.known_failed_grids = []
+        self.recursive_pose(surface)
+        # try:
+        #     file_object = open('bubble_known_failed_grids.pydata', 'wb')
+        #     pickle.dump(self.known_failed_grids,file_object)
+        #     file_object.close()
+        # except:
+        #     print("Failed to store failed_grids")
 
-    

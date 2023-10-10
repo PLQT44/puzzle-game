@@ -11,7 +11,6 @@ import pygame
 from constants import RGB_COLOURS
 import exceptions as exc
 
-
 ################################################################################
 #                           PUZZLE'S CLASSES                                   #
 ################################################################################
@@ -110,6 +109,8 @@ class PieceElement(GamePoint):
 
         self.setting = setting
         self.status = 'base'
+        self.rotation_status = 0
+        self.is_flipped = False
         self.grid_point = None
         self.collision_rect = pygame.Rect(self.rect)
 
@@ -117,7 +118,7 @@ class PieceElement(GamePoint):
         super().update()
 
     def flip(self):
-        pass
+        self.is_flipped = not self.is_flipped
 
     def clone(self):
         return PieceElement(self.setting, self.x_offset, self.y_offset)
@@ -413,10 +414,12 @@ class PuzzleGame():
     def __init__(self, name, caption, icon_path, setting_list = [''], pieces_generator = {}):
         self.name = name
         self.complete_game = True
+        self.packing_value = 1
         self.icon = pygame.image.load(icon_path)
         self.caption = caption
         self.setting_list = setting_list
         self.pieces_generator = pieces_generator
+        self.known_failed_grids = []
 
     def show(self, surface):
         # fill the screen with a color to wipe away anything from last frame
@@ -507,7 +510,7 @@ class PuzzleGame():
 
     def solve(self, surface):
         self.build_deck(self.pieces_dict)
-        # random.shuffle(self.deck)
+        self.known_failed_grids = []
         self.recursive_pose(surface)
     
     def reinit(self):
@@ -600,9 +603,11 @@ class PuzzleGame():
     ###############################################################################
 
     def recursive_pose(self, surface, free_grid = None, deck = None):
+        
+        global known_failed_grids
 
         # the core of the solving program. Tries to fill the grid with pieces in the deck. Returns the new grid and deck or exc.SolvingImpossibility if no solution is found
-        self.show(surface)
+        # self.show(surface)
 
         # free_points() should return an optimised list of free points
         # including split, sort, elimination of two small sub-grids, sorting based on setting
@@ -612,13 +617,21 @@ class PuzzleGame():
             deck = self.deck
 
         if len(free_grid) == 0 or len(deck) == 0:  # no more free points or placed all pieces, cool!
-            return True
+            return
 
         # I have free points, let's continue
         # Put the pieces that have points with their colours set at beginning
         sorted_grid_list, free_grid, deck = self.optimize_grid_and_deck(free_grid, deck)                
         
         if len(free_grid) == 0 and len(deck) >0:
+            raise exc.SolvingImpossibility
+        
+        if self.packing_value*len(free_grid) < sum((len(piece.sprites()) for piece in deck)):
+            raise exc.SolvingImpossibility # there isn't enough space
+
+        # I may already have encountered this grid, and it failed --> no use trying again!
+        hash_value = self.my_hash(free_grid, deck)
+        if hash_value in self.known_failed_grids:
             raise exc.SolvingImpossibility
 
         point_index = 0
@@ -650,12 +663,25 @@ class PuzzleGame():
 
             else:  # if piece does not fit, I move to next possibility
                 try:
-
                     point_index = current_piece.next_move(point_index, free_grid)
                 except exc.FinalMove:
                     while_exit = True
         
+        self.known_failed_grids.append(hash_value)
         raise exc.SolvingImpossibility
+
+    def my_hash(self, point_list = [], deck = []):
+        
+        point_string_list = sorted([f"""{point.Hx}{point.Hy}{point.Hz}{point.setting}
+                            {' '.join(f'{element.setting}{element.rotation_status}{element.is_flipped}' for element in point.elements)}"""
+                              for point in point_list])
+        
+        piece_string_list = sorted([piece.setting for piece in deck])
+
+        result = hash(''.join(point_string_list) + ''.join(piece_string_list))
+
+        return result
+
 
     def optimize_grid_and_deck(self, free_grid, deck):
 

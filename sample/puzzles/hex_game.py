@@ -3,7 +3,6 @@
 
 # imports
 from itertools import cycle
-import tkinter
 import pygame
 import exceptions as exc
 import puzzles.puzzle_game
@@ -198,6 +197,10 @@ class PieceElement(HexPoint, puzzles.puzzle_game.PieceElement):
             self.image.set_alpha(255)
         else:
             self.image.set_alpha(190)
+
+    def flip(self, origin):
+        HexPoint.flip(self, origin)
+        puzzles.puzzle_game.PieceElement.flip(self)
 
 class Piece(puzzles.puzzle_game.Piece):
 
