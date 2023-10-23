@@ -255,19 +255,17 @@ class Piece(puzzles.hex_game.Piece):
     def flip(self):
         for element in self.sprites():
             element.flip(self.origin)
-
-    def local_unit_move(self, local_move):
-        self.rotate()
-        if 'f' in local_move:
-            self.flip()
-        super().local_unit_move()
     
     def matching_points(self, grid):
         # just returns the dictionary of matching points which may be OK; keys are PieceElements, values are GridPoints 
 
         # let's test and handle collisions!
-        collide_dict = pygame.sprite.groupcollide(
-            self, grid, False, False, pygame.sprite.collide_rect_ratio(0.3))
+        collide_dict: dict = pygame.sprite.groupcollide(
+            self,
+            grid,
+            False,
+            False,
+            pygame.sprite.collide_rect_ratio(0.3))
 
         # remove occupied points
         proper_dict = {}
@@ -333,8 +331,15 @@ def get_bubble_image(name = 'black', element_build_sequence = ['in', '', '']):
 
 class BubbleGame(puzzles.hex_game.HexGame):
 
-    def __init__(self):
-        super().__init__("BubbleGame", "Bubble Puzzle", ICON_PATH, SETTING_LIST, PIECES_GENERATOR)
+    def __init__(self, screen):
+        super().__init__(
+            screen=screen,
+            name="BubbleGame",
+            caption="Bubble Puzzle",
+            icon_path=ICON_PATH,
+            setting_list=SETTING_LIST,
+            pieces_generator=PIECES_GENERATOR)
+        
         self.complete_game = False
         self.packing_value = 2
 
@@ -349,8 +354,8 @@ class BubbleGame(puzzles.hex_game.HexGame):
         return hash(''.join(point_string_list) + ''.join(piece_string_list))
 
     def build_pieces(self, generator):
-        super().build_pieces(generator, Piece)
-
+        super().build_pieces(Piece)
+    
     def solve(self, surface):
         self.build_deck(self.pieces_dict)
         self.deck.sort(key=lambda piece: sum(len(element.out_directions) for element in piece.sprites()), reverse=True)
