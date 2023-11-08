@@ -6,7 +6,7 @@
 
 # imports
 from itertools import cycle
-import tkinter
+import pickle
 import numpy
 import pygame
 import exceptions as exc
@@ -155,8 +155,10 @@ class PieceElement(puzzles.hex_game.PieceElement):
 
         #I need a rotation indicator
         self.rotation_status = 0
+        self.is_flipped = False
 
         # I specify outgoing directions
+        self.direction_string = element_build_sequence[0] + element_build_sequence[1]
         self.out_directions = [ANGLE_DICT[direction] for direction in element_build_sequence[1].split(',') if direction != '']
 
         # create image 
@@ -253,19 +255,17 @@ class Piece(puzzles.hex_game.Piece):
     def flip(self):
         for element in self.sprites():
             element.flip(self.origin)
-
-    def local_unit_move(self, local_move):
-        self.rotate()
-        if 'f' in local_move:
-            self.flip()
-        super().local_unit_move()
     
     def matching_points(self, grid):
         # just returns the dictionary of matching points which may be OK; keys are PieceElements, values are GridPoints 
 
         # let's test and handle collisions!
-        collide_dict = pygame.sprite.groupcollide(
-            self, grid, False, False, pygame.sprite.collide_rect_ratio(0.3))
+        collide_dict: dict = pygame.sprite.groupcollide(
+            self,
+            grid,
+            False,
+            False,
+            pygame.sprite.collide_rect_ratio(0.3))
 
         # remove occupied points
         proper_dict = {}
@@ -331,19 +331,46 @@ def get_bubble_image(name = 'black', element_build_sequence = ['in', '', '']):
 
 class BubbleGame(puzzles.hex_game.HexGame):
 
-    def __init__(self):
-        super().__init__("BubbleGame", "Bubble Puzzle", ICON_PATH, SETTING_LIST, PIECES_GENERATOR)
+    def __init__(self, screen):
+        super().__init__(
+            screen=screen,
+            name="BubbleGame",
+            caption="Bubble Puzzle",
+            icon_path=ICON_PATH,
+            setting_list=SETTING_LIST,
+            pieces_generator=PIECES_GENERATOR)
+        
         self.complete_game = False
+        self.packing_value = 2
 
     def build_grid(self):
         self.grid = Grid(GRID_WIDTH, GRID_HEIGHT, 0, 0, SETTING_LIST)
 
+    def my_hash(self, point_list = [], deck = []):
+        
+        point_string_list = sorted([f"{point.Hx}{point.Hy}{point.Hz}{point.setting}{' '.join(sorted(f'{element.direction_string}{element.rotation_status}{element.is_flipped}' for element in point.elements))}" for point in point_list])
+        piece_string_list = sorted([piece.setting for piece in deck])
+
+        return hash(''.join(point_string_list) + ''.join(piece_string_list))
+
     def build_pieces(self, generator):
-        super().build_pieces(generator, Piece)
-
-    # def solve(self, surface):
-    #     self.build_deck(self.pieces_dict)
-    #     self.deck.sort(key=lambda piece: sum(len(element.out_directions) for element in piece.sprites()), reverse=True)
-    #     self.recursive_pose(surface)
-
+        super().build_pieces(Piece)
     
+    def solve(self, surface):
+        self.build_deck(self.pieces_dict)
+        self.deck.sort(key=lambda piece: sum(len(element.out_directions) for element in piece.sprites()), reverse=True)
+        # try:
+        #     file_object = open('bubble_known_failed_grids.pydata', 'rb')
+        #     self.known_failed_grids = pickle.load(file_object)
+        #     file_object.close()
+        # except:
+        #     self.known_failed_grids = []
+        self.known_failed_grids = []
+        self.recursive_pose(surface)
+        # try:
+        #     file_object = open('bubble_known_failed_grids.pydata', 'wb')
+        #     pickle.dump(self.known_failed_grids,file_object)
+        #     file_object.close()
+        # except:
+        #     print("Failed to store failed_grids")
+

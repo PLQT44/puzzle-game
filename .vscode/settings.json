@@ -1,6 +1,23 @@
 {
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.autopep8"
-    },
-    "python.formatting.provider": "none"
+    "python.analysis.typeCheckingMode": "basic",
+    "vsintellicode.java.completionsEnabled": false,
+    "python.analysis.autoImportCompletions": false,
+    "autoDocstring.docstringFormat": "pep257",
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.inlayHints.callArgumentNames": "partial",
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.pytestParameters": true,
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.languageServer": "Pylance",
+    "editor.find.autoFindInSelection": "multiline",
+    "files.autoSave": "onFocusChange",
+    "editor.wordWrap": "wordWrapColumn",
+    "python.analysis.importFormat": "absolute",
+    "python.analysis.indexing": false,
+    "python.analysis.extraPaths": [
+        "C:\\Users\\ZPFV6163\\Documents\\Projet\\puzzle-game\\.venv\\Lib\\site-packages"
+    ],
+    "python.analysis.include": [
+        "C:\\Users\\ZPFV6163\\Documents\\Projet\\puzzle-game\\.venv\\Lib\\site-packages"
+    ]
 }

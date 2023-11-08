@@ -1,4 +1,5 @@
 #Save as constants.py
+# is it really necessary?
 
 RGB_COLOURS = {'orange':(255,128,0), 'blue':(0,0,255),
 			   'violet':(127,0,255), 'pink':(255,0,255),
